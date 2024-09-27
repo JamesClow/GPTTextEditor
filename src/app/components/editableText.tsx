@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Change, diffWords } from 'diff';
 import { diff_match_patch, Diff } from 'diff-match-patch';
 import { diffSentences } from 'diff';
+import { useRecoilState } from 'recoil';
+import { clearTextState } from '../store/editor';
 
 interface EditableTextProps {
   newText: string;
@@ -10,11 +12,20 @@ interface EditableTextProps {
   onChange: (value: string) => void;
 }
 export default function EditableText ({newText, setText, placeholder, onChange}:EditableTextProps) {
+  const [mounted, setMounted] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
   const dmp = new diff_match_patch();
 
+  const [clearText, setClearText] = useRecoilState(clearTextState);
+
   useEffect(() => {
-    if(editableRef.current){
+    if(!mounted){
+      setMounted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if(editableRef.current && mounted){
       const newHtml = generateDiffHtml(editableRef.current.innerText, newText);
       editableRef.current.innerHTML = newHtml;
       onInput();
@@ -22,12 +33,19 @@ export default function EditableText ({newText, setText, placeholder, onChange}:
   }, [newText]);
 
   useEffect(() => {
-    if(editableRef.current){
+    if(editableRef.current && mounted){
       editableRef.current.innerHTML = setText;
     }
   }, [setText]);
 
-  const generateDiffHtml = (text1: string, text2: string) => {
+  useEffect(() => {
+    if(editableRef.current && mounted){
+      editableRef.current.innerHTML = clearText;
+      onChange(clearText);
+    }
+  }, [clearText]);
+
+  function generateDiffHtml(text1: string, text2: string){
     // const diffs = dmp.diff_main(text1, text2);
     // dmp.diff_cleanupSemantic(diffs);
     // let html = '';
@@ -61,7 +79,7 @@ export default function EditableText ({newText, setText, placeholder, onChange}:
     return html;
   };
 
-  const onInput = () => {
+  function onInput(){
     if(editableRef.current){
       const innerHTMLText = editableRef.current.innerHTML;
       // remove all deletions
@@ -72,6 +90,15 @@ export default function EditableText ({newText, setText, placeholder, onChange}:
     }
   };
 
+  function onFocus(){
+    //remove the placeholder
+    if(editableRef.current){
+      if(editableRef.current.innerText === placeholder){
+        editableRef.current.innerText = '';
+      }
+    }
+  }
+
   return (
     <div
       ref={editableRef}
@@ -79,6 +106,7 @@ export default function EditableText ({newText, setText, placeholder, onChange}:
       contentEditable
       onInput={onInput}
       suppressContentEditableWarning={true}
-    ></div>
+      onFocus={onFocus}
+    >{placeholder}</div>
   );
 };

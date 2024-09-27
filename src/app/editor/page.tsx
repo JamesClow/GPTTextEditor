@@ -1,6 +1,6 @@
 'use client';
 import ToggleButton from '../components/toggleButton';
-import { editingState, promptState, versionState, wipState, extraStepsState, newTextState, fixedTextState, gptSKState, personalityState } from '../store/editor';
+import { editingState, promptState, versionState, wipState, extraStepsState, newTextState, fixedTextState, gptSKState, personalityState, clearTextState } from '../store/editor';
 import { useRecoilState } from 'recoil';
 import TextAreaInput from '../components/textAreaInput';
 import TextInput from '../components/textInput';
@@ -9,6 +9,7 @@ import { updatePrompt, addExtraStep, addPersonality } from '../functions/prompt'
 import CollapsibleSection from '../components/collapsibleSection';
 import EditableText from '../components/editableText';
 import CryptoJS, { enc } from 'crypto-js';
+import Button, {BUTTON_COLOR} from '../components/button';
 
 const ENCRYPTED_SK_KEY = 'ENCRYPTED_SK_KEY';
 const EXTRA_STEPS_KEY = 'EXTRA_STEPS_KEY';
@@ -24,11 +25,13 @@ export default function EditorPage(){
   const [fixedText, setFixedText] = useRecoilState(fixedTextState);
   const [gptSK, setGptSK] = useRecoilState(gptSKState);
   const [personalities, setPersonalities] = useRecoilState(personalityState);
+  const [clearText, setClearText] = useRecoilState(clearTextState);
   
 
   const [personalitiesInput, setPersonalitiesInput]= useState("");
   const [extraStepInput, setExtraStepInput]= useState("");
   const [loadedLocalStorage, setLoadedLocalStorage] = useState(false);
+  const [loadingPrompt, setLoadingPrompt] = useState(false);
 
   const password = 'password';
 
@@ -83,8 +86,11 @@ export default function EditorPage(){
     if(!e.shiftKey && e.key === 'Enter'){
       e.preventDefault();
       if(prompt && prompt.trim()){
-        updatePrompt({gptSK, wip, prompt, versions, setNewText, setVersions, extraSteps, setFixedText});
-        setPrompt("");
+        setLoadingPrompt(true);
+        updatePrompt({gptSK, wip, prompt, personalities, versions, setNewText, setVersions, extraSteps, setFixedText}).finally(() => {
+          setLoadingPrompt(false);
+          setPrompt("");
+        });
       }
     }
   }
@@ -115,38 +121,55 @@ export default function EditorPage(){
     setItems(newItems);
   }
 
+  function approveAll(){
+    setFixedText(wip);
+  }
+
+  function revertAll(){
+    setClearText(fixedText);
+    setNewText(fixedText);
+  }
+
   return (
     <div className='flex'>
       <div className="editor-col flex justify-center h-screen p-4 flex-1 border-r">
         <div className="flex flex-col" style={{flexBasis: "54rem"}}>
-          <div>
-            <TextInput value={gptSK} onChange={setGptSK} placeholder='GPT SK'></TextInput>
-          </div>
-          <div className="toggle-container mb-4">
+          <div className="toggle-container mb-4 flex justify-between">
             <ToggleButton leftActive={editing} leftLabel='Edit' rightLabel='Select' onChange={setEditing}></ToggleButton>
+            <div>
+              {fixedText != newText && (
+                <>
+                  <Button title='Approve All' color={BUTTON_COLOR.primary} className="mr-2" onClick={approveAll}></Button>
+                  <Button title='Revert' onClick={revertAll}></Button>
+                </>
+              )}
+            </div>
           </div>
           {/* <div className="editor-container flex flex-1">
             <TextAreaInput value={wip} onChange={setWip} placeholder='Your text goes here'></TextAreaInput>
           </div> */}
           <div className="editor-container w-full flex flex-1">
-            <EditableText newText={newText} setText={fixedText} onChange={setWip} placeholder='Your text goes here'></EditableText>
+            <EditableText newText={newText} setText={fixedText} onChange={setWip} placeholder='Start typing here...'></EditableText>
           </div>
           <div className="prompt-container flex">
-            <TextInput value={prompt} onChange={setPrompt} placeholder='Prompt' onKeyDown={onPromptKeyDown}></TextInput>
+            <TextInput value={prompt} onChange={setPrompt} placeholder='Prompt' onKeyDown={onPromptKeyDown} isLoading={loadingPrompt}></TextInput>
           </div>
         </div>
       </div>
       <div className="control-col basis-96">
         <div className="control-container p-4">
-          <CollapsibleSection title='Personality'>
+          <CollapsibleSection title='ChatGPT API SK'>
+            <input className="rounded flex-1 w-full px-6 py-3 border resize-none bg-gray-100" value={gptSK} onChange={e => setGptSK(e.target.value)} placeholder={"GPT SK"}/>
+          </CollapsibleSection>
+          <CollapsibleSection title='Personality (Added to every request)'>
             <TextInput value={personalitiesInput} onChange={setPersonalitiesInput} placeholder='Add Trait' onKeyDown={onPersonalityKeyDown}></TextInput>
             {personalities.map((personality, index) => (
-              <div key={personality.timestamp} className="version-item px-4 py-2 mt-2 border shadow rounded cursor-pointer" onClick={() => removeItem(personalities, index, setPersonalities)}>
+              <div key={personality.timestamp} className="version-item inline-block px-4 py-2 mt-2 mr-2 border shadow rounded cursor-pointer" onClick={() => removeItem(personalities, index, setPersonalities)}>
                 {personality.content}
               </div>
             ))}
           </CollapsibleSection>
-          <CollapsibleSection title='Extra Steps'>
+          <CollapsibleSection title='Additional Prompts (Runs one after another)'>
             <TextInput value={extraStepInput} onChange={setExtraStepInput} placeholder='Add Prompt' onKeyDown={onExtraStepKeyDown}></TextInput>
             {extraSteps.map((step, index) => (
               <div key={step.timestamp} className="version-item px-4 py-2 mt-2 border shadow rounded cursor-pointer" onClick={() => removeItem(extraSteps, index, setExtraSteps)}>

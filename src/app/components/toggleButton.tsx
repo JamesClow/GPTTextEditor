@@ -10,10 +10,10 @@ interface ToggleButtonProps {
 export default function ToggleButton({leftLabel, rightLabel, leftActive, onChange}: ToggleButtonProps) {
   return (
     <div css={style} className={"flex items-center inline-flex rounded"} onClick={() => onChange(!leftActive)}>
-      <div className={"left-label px-4 py-2 border-r rounded-l " + (leftActive ? "active shadow" : "border")}>
+      <div className={"left-label px-4 py-2 border-r rounded-l " + (leftActive ? "active shadow-md" : "border")}>
         {leftLabel}  
       </div>
-      <div className={"right-label px-4 py-2 rounded-r " + (!leftActive ? "active shadow" : "border")}>
+      <div className={"right-label px-4 py-2 rounded-r " + (!leftActive ? "active shadow-md" : "border")}>
         {rightLabel}
       </div>
     </div>

@@ -25,6 +25,11 @@ export const promptState = atom({
   default: "",
 })
 
+export const clearTextState = atom({
+  key: 'clearTextState',
+  default: "",
+})
+
 export interface Version {
   timestamp: number,
   prompt: string,

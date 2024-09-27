@@ -1,19 +1,25 @@
 import axios from 'axios';
 import { Version, ExtraStep, gptSKState, Personality } from '../store/editor';
+import { useRecoilState } from 'recoil';
 
 interface updatePromptProps {
   gptSK: string,
   wip: string, 
   prompt: string, 
+  personalities: Personality[],
   versions: Version[], 
   extraSteps: ExtraStep[],
   setFixedText: (value:string) => void, 
   setNewText: (value:string) => void, 
   setVersions: (value: Version[]) => void
 }
-export function updatePrompt({gptSK, wip, prompt, versions, extraSteps, setNewText, setVersions, setFixedText}: updatePromptProps){
+export function updatePrompt({gptSK, wip, prompt, personalities, versions, extraSteps, setNewText, setVersions, setFixedText}: updatePromptProps){
   return new Promise((resolve, reject) => { 
     const message = `
+      ${personalities && 
+        `You are ${personalities.map(personality => personality.content).join(', ')}.`
+      }
+
       ${prompt}
 
       ${wip}

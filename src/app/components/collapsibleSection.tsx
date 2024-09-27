@@ -7,8 +7,8 @@ interface CollapsibleSectionProps {
 export default function CollapsibleSection({title, children}: CollapsibleSectionProps) {
   const [open, setOpen] = useState(true);
   return (
-    <div className='flex flex-col mb-4'>
-      <div className="section-header text-gray-300 mb-1 select-none hover:cursor-pointer flex-1" onClick={() => setOpen(!open)}>
+    <div className='flex flex-col mb-6'>
+      <div className="section-header text-gray-400 mb-1 select-none hover:cursor-pointer flex-1" onClick={() => setOpen(!open)}>
         {title}
       </div>
       {open && (
